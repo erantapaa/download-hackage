@@ -5,4 +5,5 @@
 /bin/rm -f downloads/*
 /bin/rm -f unpack/*
 /bin/rm -f tmp/*
+/bin/rm -f all-hs-files lex-test-exe lex-test-report
 

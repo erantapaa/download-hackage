@@ -22,8 +22,9 @@ isRight _         = False
 
 fmtNotOk str = case take 2 (lines str) of
                 [] -> "  (empty)"
-                [x] -> "  " ++ x
-                (x:_) -> unlines ["  " ++ x, "  ..."]
+                (x:_) -> printf "  %s %s" (uord x) x
+  where uord [] = "U+----"
+        uord (c:_) = printf "U+%04x" (ord c)
 
 enumerate xs = zip [(1::Int)..] xs
 

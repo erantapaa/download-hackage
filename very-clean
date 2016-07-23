@@ -1,9 +1,8 @@
 #!/bin/sh
 
 /bin/rm index.tar.gz latest-versions
-/bin/rm -f archives/*
-/bin/rm -f downloads/*
-/bin/rm -f unpack/*
+/bin/rm -rf archives downloads unpack
+mkdir archives downloads unpack
 /bin/rm -f tmp/*
 /bin/rm -f all-hs-files lex-test-exe lex-test-report
 

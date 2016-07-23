@@ -1,0 +1,8 @@
+#!/bin/sh
+
+/bin/rm index.tar.gz latest-versions
+/bin/rm -f archives/*
+/bin/rm -f downloads/*
+/bin/rm -f unpack/*
+/bin/rm -f tmp/*
+

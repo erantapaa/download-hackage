@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+import sys
+import re
+import os
+
+# dnscache/1.0.1/dnscache.cabal
+# 3d-graphics-examples/0.0.0.0/3d-graphics-examples.cabal
+
+def test(x):
+  # m = re.match("([^/]+)/(\d[\.\d]*)/([^/]+)\.cabal\Z", x)
+  m = re.match("([^/]+)/(\d[\.\d]*)/([^/]+)\.cabal\Z", x)
+  if m:
+    print "matched:", m.group(1), m.group(2), m.group(3)
+
+def foo():
+  test("3d-graphics-examples/0.0.0.0/3d-graphics-examples.cabal\n")
+
+def debugCompareVersions(v1, v2):
+  cmp = compareVersions(v1,v2)
+  print "compareVersions", v1, v2, "=", cmp
+  return cmp
+
+def compareVersions(v1, v2):
+  """v1 and v2 are lists of numbers"""
+  i = 0
+  j = 0
+  while True:
+    if i < len(v1):
+      if j < len(v2):
+        if v1[i] == v2[j]:
+          i += 1
+          j += 1
+          continue
+        elif v1[i] < v2[j]:
+          return -1
+        else:
+          return 1
+      else:
+        return 1
+    else:
+      if j < len(v2):
+        return -1
+      else:
+        return 0
+
+def parseVersion(s):
+  return [ int(x) for x in s.split(".") ]
+
+def versionToString(vers):
+  return '.'.join( [ str(x) for x in vers ] )
+
+def main():
+  latest = {}
+  for x in sys.stdin:
+    m = re.match("([^/]+)/(\d[\.\d]*)/([^/]+)\.cabal\Z", x.strip())
+    if m:
+      vers = parseVersion( m.group(2) )
+      pkg = m.group(1)
+      if pkg in latest:
+        if compareVersions( vers, latest[pkg] ) > 0:
+          latest[pkg] = vers
+      else:
+        latest[ pkg ] = vers
+  for pkg in sorted(latest.keys()):
+    print pkg + '-' + versionToString( latest[pkg] )
+
+if __name__ == '__main__': main()
+

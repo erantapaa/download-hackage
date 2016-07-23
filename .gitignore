@@ -1,0 +1,7 @@
+archives/
+downloads/
+unpack/
+tmp/
+index.tar.gz
+latest-versions
+*.pyc

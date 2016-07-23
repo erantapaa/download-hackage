@@ -1,13 +1,11 @@
-#!/bin/sh
+#!/usr/bin/env python
 
-redo-ifchange all-downloads
-redo-ifchange latest-versions
+from redo_utils import redo_ifchange, latest_versions
+def main():
+  redo_ifchange(["latest-versions"])
 
-sed -e 's,^,archives/,' -e 's,$,.tar.gz,' latest-versions | xargs redo-ifchange
+  args = [ "archives/{}.tar.gz".format(x) for x in latest_versions() ]
+  redo_ifchange(args)
 
-# deps=($(tsort < deps.dump | tail -100))
-# 
-# d1=("${deps[@]/#/done/}")
-# d2="${d1[@]/%/.pkg}"
-# 
-# redo-ifchange $d2
+main()
+

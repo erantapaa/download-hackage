@@ -5,4 +5,5 @@
 mkdir archives downloads unpack
 /bin/rm -f tmp/*
 /bin/rm -f all-hs-files lex-test-exe lex-test-report
+/bin/rm -f not-ok-files report-default report-single report-unicode
 

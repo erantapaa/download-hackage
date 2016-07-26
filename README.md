@@ -8,5 +8,7 @@ Scripts to download and unpack all of Hackage.
     $ redo all-downloads
     $ redo all-unpacked
 
-    $ redo lex-test-report
+    $ redo report-all
+    $ redo report-single
+    $ redo report-unicode
 

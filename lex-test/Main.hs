@@ -3,7 +3,8 @@
 module Main where
 
 import Control.Monad
-import Parser (chunk)
+import Control.Applicative
+import Parser (chunk, chunkOrElse, singleQuotes, unicodeSyntax)
 import System.Environment
 import qualified Data.ByteString.Char8 as BS
 import Data.ByteString.Char8 (ByteString)
@@ -56,13 +57,20 @@ zeroStats = Stats 0 0 0 0 Map.empty
 data Result = DecodeError | Ok | NotOk String
   deriving (Show, Read)
 
-analyzeSource :: FilePath -> IO Result
-analyzeSource path = do
+data ParseMode = Default | SingleQuotes | UnicodeSyntax
+  deriving (Show)
+
+analyzeSource :: ParseMode -> FilePath -> IO Result
+analyzeSource parseMode path = do
   contents <- BS.readFile path
   let text = T.decodeUtf8' contents
+      tokenize = case parseMode of
+                   Default       -> chunk
+                   SingleQuotes  -> chunkOrElse singleQuotes
+                   UnicodeSyntax -> chunkOrElse (\s -> (singleQuotes s <|> unicodeSyntax s))
   case text of
     Left _  -> return DecodeError
-    Right t -> case dropWhile isRight (chunk (T.unpack t)) of
+    Right t -> case dropWhile isRight (tokenize (T.unpack t)) of
                  [] -> return Ok
                  (Left str:_)  -> return (NotOk str)
 
@@ -90,6 +98,12 @@ showProgress start nfiles stats = do
   hFlush stderr
 
 main = do
+  args <- getArgs
+  let parseMode = case args of
+                    [] -> Default
+                    ("singleQuotes": _)  -> SingleQuotes
+                    ("unicodeSyntax": _) -> UnicodeSyntax
+                    (arg: _)             -> error $ "unknown tokenizer mode: " ++ arg
   contents <- getContents
   let paths = words contents
   start <- getCurrentTime
@@ -97,15 +111,15 @@ main = do
 
   let loop stats [] = return stats
       loop stats (p:ps) = do
-        result <- analyzeSource p
+        result <- analyzeSource parseMode p
         stats' <- do case result of
-                       DecodeError -> do putStrLn $ p ++ ": DECODE ERROR"
+                       DecodeError -> do putStrLn $ "DECODE ERROR: " ++ p
                                          return $ over decode_errors (+1) stats
-                       Ok          -> do putStrLn $ p ++ ": OK"
+                       Ok          -> do putStrLn $ "OK: " ++ p
                                          return $ over ok_count (+1) stats
-                       NotOk []    -> do putStrLn $ p ++ ": OK"
+                       NotOk []    -> do putStrLn $ "OK: " ++ p
                                          return $ over ok_count (+1) stats
-                       NotOk (c:cs) -> do putStrLn $ p ++ ": NOT OK"
+                       NotOk (c:cs) -> do putStrLn $ "NOT OK: " ++ p
                                           putStrLn $ fmtNotOk (c:cs)
                                           let m = addChar c (stats ^. first_char)
                                           return $ set first_char m $ over error_count (+1) $ stats
@@ -118,7 +132,15 @@ main = do
   stats <- loop zeroStats paths
   showProgress start npaths stats
   hPutStrLn stderr "\n"
+  -- dump the stats record
+  putStrLn "Stats:"
+  putStrLn $ printf "  count        : %5d" (_count stats)
+  putStrLn $ printf "  decode errors: %5d" (_decode_errors stats)
+  putStrLn $ printf "  ok           : %5d" (_ok_count stats)
+  putStrLn $ printf "  not ok       : %5d" (_error_count stats)
+  putStrLn ""
   -- dump the first_char map
+  putStrLn "First Character Errors:"
   forM_ (Map.assocs (view first_char stats)) $ \(ch,cnt) -> do
     putStrLn $ printf "  U+%04x - %6d - %c" (ord ch) cnt ch
 

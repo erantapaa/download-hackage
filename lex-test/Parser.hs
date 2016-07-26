@@ -1,12 +1,10 @@
 module Parser where
 
-
 import Data.Char
 import Data.List
 import Data.Maybe
 
 -- import Haddock.Backends.Hyperlinker.Types
-
 
 -- | Turn source code string into a stream of more descriptive tokens.
 --
@@ -16,6 +14,36 @@ import Data.Maybe
 -- @concat . map 'tkValue' . 'parse' = id@
 -- parse :: String -> [Token]
 -- parse = tokenize . tag . chunk
+
+singleQuotes :: String -> Maybe (String, String)
+singleQuotes str
+  | isPrefixOf "''" str = Just ("''", drop 2 str)
+  | isPrefixOf "'"  str = Just ("'", drop 1 str)
+  | otherwise           = Nothing
+
+unicodeSyntaxChars = [ '\x2237', '\x21d2', '\x2192', '\x2190', '\x291a', '\x2919', '\x291c', '\x291b', '\x2605', '\x2200' ]
+
+unicodeSyntax :: String -> Maybe (String, String)
+unicodeSyntax (c:rest)
+  | elem c unicodeSyntaxChars = Just ([c], rest)
+  | otherwise                 = Nothing
+
+chunkOrElse :: (String -> Maybe (String,String)) -> String -> [Either String String]
+chunkOrElse _ [] = []
+chunkOrElse p str@(c:_)
+    | isSpace c =
+        let (space, mcpp, rest) = spanSpaceOrCpp str
+        in [Right space] ++ (map Right (maybeToList mcpp)) ++ chunkOrElse p rest
+chunkOrElse p str
+    | "--" `isPrefixOf` str = chunk' $ spanToNewline str
+    | "{-" `isPrefixOf` str = chunk' $ chunkComment 0 str
+    | otherwise = case lex str of
+        (tok:_) -> chunk' tok
+        [] -> case p str of
+                Nothing         -> [Left str]
+                Just (tok,rest) -> (Right tok) : chunkOrElse p rest
+  where
+    chunk' (c, rest) = (Right c):(chunkOrElse p rest)
 
 -- | Split raw source string to more meaningful chunks.
 --
